@@ -1,0 +1,21 @@
+addons:
+  sonarcloud:
+    organization: "azak-azkaran-github" # the key of the org you chose at step #3
+    token:
+        secure: "DG/mubA8SCyhwnEnlbUoLWivUN7vt5bDqFJmFEWy2xtupSu9zWyOqqegc0MqP3DhYukFyqnxrBsysytmsncChZdyz8E7maaEJdm7uybKhsaxaLOIIw6yV7sa8dLanMoWuMY+0yM52mJ6gaQZ5Iz2xt166eWifNVYwZ8FEGaEik1FRizVUAzk0AWVwpJQS5713RoJt5iOC3IwG65CTDhPUh15HROSYL2Gg6mw7dY4VpIXamFG8adhpQMfL11KxV5NRo5fe6CEt7wd0csABVL37PMOjLvRaGY4v/bJOddiz/xNdJVgEDjDUOFEN6BEkkqaPfw4OopOBqi+Xk8Sd0HnYWDbHD8HdlmJLiHTBNttnrPSx8PUkKlj51XBkASbaLzqY1uY6J8Phb8x0fQQ1MELV+APuJkOJHW8iX+Oh2mhgGg1YxJEf5gzh+QjzZ3cSdzUQG+LYUNEjh5ATaKgjrqw31w53afXDPBxHZXwMiWV0ZrF94SAd7iBNd8njhEW6b/33DoGharKp6/jBKRnajxorYuqL61v6qN7cqtaWMbF/M2jR/f1KWU1i2Qs6p0EfzoME68fGSH54OHBt3oLoUoBIw/eaDmJPyNrr4cRU16zrQxeNRhv7jwlItSW42hUaB916r8tpUNhDDHq9ktSDckq82p8DrzNyIKEHf2Nu7VwnCc="
+env:
+    global:
+        secure: "k/J8NPzdpa1H4crv/18iOEURKQBhRk9ztfj+fzw6IKIAH7S6nnyKyDN65IGU6ppJc85bj3kC1YQWu7j43oPOWMhG39hRTdNC6IydPb1NEQv53ls4Q50ORodlE01/vN8Po90Vi7L0TiAtsdoIOFpiPemgSMyOGYBMUs9at5S/jngUuppqPiM2GBiaj8/3NQMNIHu3v/VQ4Do8ppYQRWCJoh11BIEx6undYMDkBbjQo6MuGQNAHlKmewLxWkIdAGh9etbMCIo5JAyeA06BkHIdzMFRJcwsFwcd5CY5yznKbjQomzsE/UOUPGzZwbLbDO55SSRNpR0p+g4gMj7wjNXyG1zhnpXfg3l4cq2r9fjW3uE57oiNFDpgLFO7u/zfcQ3YobI9qnBdC80xJxlYzsSRp1Ptn4MgzSdb5wNlUFo1DYlNKNrahHCDTygCoSLJHArNjU32sE5bPMD7/Tja40+8484O64w+J7sosNgP5Wh55S+/etn4vsx9hT8ZjhEDl9gQWgsDSFdy3dY/zZ6moM61UgOwDploS72UGU3DE1B/UBgT/25gX/cqtZdCfv3RipWzwNNTJkncuSJbrqayBdPrYfOpBnT0BCuCI6BSYT2qn6uc8+G/RNb/vf0Ghnd3ny1GIWMcqyIpFktqjw4g4Y3OAcVBioOzMrX6BgcFZY+s3EA="
+
+language: go
+sudo: false
+go:
+  - tip
+before_install:
+  - sudo apt-get update
+  - sudo apt-get install findutils
+script:
+  - go get ./...
+  - go test -v -coverprofile=cover.out
+  - go test -json > report.json
+  - sonar-scanner
