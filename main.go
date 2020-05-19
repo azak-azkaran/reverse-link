@@ -19,51 +19,51 @@ const (
 	ERROR_NOT_LINK  = "ERROR: file is not a link"
 )
 
-func ReadFile(args []string) (*string, error) {
+func ReadFile(args []string) (string, error) {
 	fileFlag := pflag.NewFlagSet("file", pflag.ContinueOnError)
 	fileFlag.String("file", "", "the file for which the link should be reversed")
 	err := viper.BindPFlags(pflag.CommandLine)
 	if err != nil {
 		log.Println(ERROR_BIND, err)
-		return nil, err
+		return "", err
 	}
 
 	err = fileFlag.Parse(args)
 	if err != nil {
 		log.Println(ERROR_PARSE, err)
-		return nil, err
+		return "", err
 	}
 
 	fileName, err := fileFlag.GetString("file")
 	if err != nil {
 		log.Println(ERROR_READ_FLAG, err)
-		return nil, err
+		return "", err
 	}
 	log.Println("Reading file: ", fileName)
 
 	stat, err := os.Stat(fileName)
 	if err != nil {
 		log.Println(ERROR_READ_FILE, err)
-		return nil, err
+		return "", err
 	}
 
 	lstat, err := os.Lstat(fileName)
 	if err != nil {
 		log.Println(ERROR_READ_FILE, err)
-		return nil, err
+		return "", err
 	}
 
 	if stat.IsDir() || lstat.IsDir() {
 		log.Println(ERROR_PATH_DIR)
-		return nil, errors.New(ERROR_PATH_DIR)
+		return "", errors.New(ERROR_PATH_DIR)
 	}
 
 	if lstat.Mode()&os.ModeSymlink != os.ModeSymlink {
 		log.Println(ERROR_NOT_LINK)
-		return nil, errors.New(ERROR_NOT_LINK)
+		return "", errors.New(ERROR_NOT_LINK)
 	}
 
-	return &fileName, nil
+	return fileName, nil
 }
 
 func ReverseFile(path string) error {
@@ -82,8 +82,12 @@ func ReverseFile(path string) error {
 }
 
 func main() {
-	_, err := ReadFile(os.Args)
+	fileName, err := ReadFile(os.Args)
 	if err != nil {
-		panic("ERROR: " + err.Error())
+		panic(err.Error())
+	}
+	err = ReverseFile(fileName)
+	if err != nil {
+		panic(err.Error())
 	}
 }

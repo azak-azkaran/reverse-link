@@ -42,13 +42,13 @@ func TestReadFile(t *testing.T) {
 	strings := []string{"--file=./test/random.json"}
 	fileName, err := ReadFile(strings)
 	assert.Error(t, err)
-	assert.Nil(t, fileName)
+	assert.Zero(t, fileName)
 
 	strings = []string{"--file=./random.json"}
 	fileName, err = ReadFile(strings)
 	assert.NoError(t, err)
 	require.NotNil(t, fileName)
-	assert.Equal(t, *fileName, "./random.json")
+	assert.Equal(t, fileName, "./random.json")
 }
 
 func TestReverseFile(t *testing.T) {
@@ -64,6 +64,22 @@ func TestReverseFile(t *testing.T) {
 	assert.NoError(t, err)
 
 	Lstat, err = os.Lstat("./random.json")
+	require.NoError(t, err)
+	require.True(t, Lstat.Mode()&os.ModeSymlink != os.ModeSymlink)
+	_, err = os.Lstat("./test/random.json")
+	require.Error(t, err)
+
+	err = os.Remove("./random.json")
+	require.NoError(t, err)
+}
+
+func TestMain(t *testing.T) {
+	fmt.Println("testing: TestMain")
+	createSimlinks(t)
+
+	os.Args = append(os.Args, "--file=./random.json")
+	main()
+	Lstat, err := os.Lstat("./random.json")
 	require.NoError(t, err)
 	require.True(t, Lstat.Mode()&os.ModeSymlink != os.ModeSymlink)
 	_, err = os.Lstat("./test/random.json")
