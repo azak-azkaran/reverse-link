@@ -88,3 +88,22 @@ func TestMain(t *testing.T) {
 	err = os.Remove("./random.json")
 	require.NoError(t, err)
 }
+
+func TestNoArgs(t *testing.T) {
+	fmt.Println("testing: TestNoArgs")
+	defer func() {
+		err := recover()
+		require.NotNil(t, err)
+	}()
+	main()
+}
+
+func TestNoFile(t *testing.T) {
+	fmt.Println("testing: TestNoFile")
+	defer func() {
+		err := recover()
+		require.NotNil(t, err)
+	}()
+	os.Args = append(os.Args, "--file=./random.json")
+	main()
+}
