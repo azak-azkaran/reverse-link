@@ -7,28 +7,21 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
 )
 
 const (
-	ERROR_BIND      = "ERROR: Could not bind: "
 	ERROR_PARSE     = "ERROR: while parsing: "
 	ERROR_READ_FLAG = "ERROR: while retrieving: "
 	ERROR_READ_FILE = "ERROR: while reading File: "
 	ERROR_PATH_DIR  = "ERROR: while reading Path is Directory"
 	ERROR_NOT_LINK  = "ERROR: file is not a link"
+	FLAG_UNSET ="_*NOT_FLAG_SET*_"
 )
 
-func ReadFile(args []string) (string, error) {
+func ReadFlags(args []string) (string, error) {
 	fileFlag := pflag.NewFlagSet("file", pflag.ContinueOnError)
-	fileFlag.String("file", "", "the file for which the link should be reversed")
-	err := viper.BindPFlags(pflag.CommandLine)
-	if err != nil {
-		log.Println(ERROR_BIND, err)
-		return "", err
-	}
-
-	err = fileFlag.Parse(args)
+	fileFlag.String("file", FLAG_UNSET, "the file for which the link should be reversed")
+	err := fileFlag.Parse(args)
 	if err != nil {
 		log.Println(ERROR_PARSE, err)
 		return "", err
@@ -39,7 +32,22 @@ func ReadFile(args []string) (string, error) {
 		log.Println(ERROR_READ_FLAG, err)
 		return "", err
 	}
-	log.Println("Reading file: ", fileName)
+
+	if fileName == "" {
+		err =errors.New("Empty flag")
+		log.Println(ERROR_READ_FLAG, err)
+		return "", err
+	}
+
+	if fileName == FLAG_UNSET  && len(args) >= 1 {
+		return args[len(args)-1], nil
+	}
+
+	return fileName, nil
+} 
+
+func CheckFile(fileName string)(string,error){
+	log.Println("Cheaking file", fileName)
 
 	stat, err := os.Stat(fileName)
 	if err != nil {
@@ -62,12 +70,10 @@ func ReadFile(args []string) (string, error) {
 		log.Println(ERROR_NOT_LINK)
 		return "", errors.New(ERROR_NOT_LINK)
 	}
-
 	return fileName, nil
 }
 
 func ReverseFile(path string) error {
-
 	p, err := filepath.EvalSymlinks(path)
 	if err != nil {
 		return err
@@ -82,10 +88,17 @@ func ReverseFile(path string) error {
 }
 
 func main() {
-	fileName, err := ReadFile(os.Args)
+	log.Println(os.Args)
+	fileName, err := ReadFlags(os.Args)
 	if err != nil {
 		panic(err.Error())
 	}
+
+	fileName, err = CheckFile(fileName)
+	if err != nil {
+		panic(err.Error())
+	}
+
 	err = ReverseFile(fileName)
 	if err != nil {
 		panic(err.Error())

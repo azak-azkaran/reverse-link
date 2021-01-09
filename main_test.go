@@ -10,6 +10,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func removeSimlink(){
+if _, err := os.Lstat("./random.json"); err == nil {
+		os.Remove("./random.json")
+	}
+if _, err := os.Lstat("./test/random.json"); err == nil {
+		os.Remove("./random.json")
+	}
+}
+
 func createSimlinks(t *testing.T) {
 	if _, err := os.Lstat("./random.json"); err == nil {
 		os.Remove("./random.json")
@@ -27,8 +36,35 @@ func createSimlinks(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestReadFile(t *testing.T) {
-	fmt.Println("testing: TestReadFile")
+func TestReadFlags(t *testing.T) {
+	t.Cleanup(removeSimlink)
+	fmt.Println("testing: TestReadFlags")
+
+	args := []string{"--file=./test/random.json"}
+	fileName, err := ReadFlags(args)
+	assert.NoError(t, err)
+	assert.Equal(t, fileName, "./test/random.json")
+
+	args = []string{"--file=./random.json"}
+	fileName, err = ReadFlags(args)
+	assert.NoError(t, err)
+	assert.Equal(t, fileName, "./random.json")
+
+	args = []string{"--file="}
+	fileName, err = ReadFlags(args)
+	assert.Error(t, err)
+	assert.Equal(t, fileName, "")
+
+	args = []string{"reverse-link","random.json"}
+	fileName, err = ReadFlags(args)
+	assert.NoError(t, err)
+	assert.Equal(t, fileName, "random.json")
+}
+
+
+func TestCheckFile(t *testing.T) {
+	t.Cleanup(removeSimlink)
+	fmt.Println("testing: TestCheckFile")
 	createSimlinks(t)
 
 	data, err := ioutil.ReadFile("./random.json")
@@ -39,19 +75,18 @@ func TestReadFile(t *testing.T) {
 	require.NoError(t, err)
 	require.NotZero(t, data)
 
-	strings := []string{"--file=./test/random.json"}
-	fileName, err := ReadFile(strings)
+	fileName, err := CheckFile("./test/random.json")
 	assert.Error(t, err)
 	assert.Zero(t, fileName)
 
-	strings = []string{"--file=./random.json"}
-	fileName, err = ReadFile(strings)
+	fileName, err = CheckFile("./random.json")
 	assert.NoError(t, err)
 	require.NotNil(t, fileName)
 	assert.Equal(t, fileName, "./random.json")
 }
 
 func TestReverseFile(t *testing.T) {
+	t.Cleanup(removeSimlink)
 	fmt.Println("testing: TestReverseFile")
 	createSimlinks(t)
 	require.FileExists(t, "./random.json")
@@ -69,8 +104,25 @@ func TestReverseFile(t *testing.T) {
 	_, err = os.Lstat("./test/random.json")
 	require.Error(t, err)
 
-	err = os.Remove("./random.json")
+}
+
+func TestReverseNoFile(t *testing.T) {
+	t.Cleanup(removeSimlink)
+	fmt.Println("testing: TestReverseNoFile")
+	createSimlinks(t)
+	os.Remove("./test/random.json")
+	require.FileExists(t, "./random.json")
+
+	Lstat, err := os.Lstat("./random.json")
 	require.NoError(t, err)
+	require.False(t, Lstat.Mode()&os.ModeSymlink != os.ModeSymlink)
+
+	err = ReverseFile("./random.json")
+	assert.Error(t, err)
+
+	Lstat, err = os.Lstat("./random.json")
+	require.NoError(t, err)
+	require.False(t, Lstat.Mode()&os.ModeSymlink != os.ModeSymlink)
 }
 
 func TestMain(t *testing.T) {
@@ -79,17 +131,42 @@ func TestMain(t *testing.T) {
 
 	os.Args = append(os.Args, "--file=./random.json")
 	main()
+
+	os.Args = os.Args[:len(os.Args)-1]
 	Lstat, err := os.Lstat("./random.json")
 	require.NoError(t, err)
 	require.True(t, Lstat.Mode()&os.ModeSymlink != os.ModeSymlink)
 	_, err = os.Lstat("./test/random.json")
 	require.Error(t, err)
 
-	err = os.Remove("./random.json")
+	createSimlinks(t)
+	os.Args = append(os.Args, "./random.json")
+	main()
+
+	os.Args = os.Args[:len(os.Args)-1]
+	Lstat, err = os.Lstat("./random.json")
 	require.NoError(t, err)
+	require.True(t, Lstat.Mode()&os.ModeSymlink != os.ModeSymlink)
+	_, err = os.Lstat("./test/random.json")
+	require.Error(t, err)
+
+}
+
+
+func TestEmptyFlag(t *testing.T) {
+	t.Cleanup(removeSimlink)
+	fmt.Println("testing: TestEmptyFlag")
+	defer func() {
+		err := recover()
+		require.NotNil(t, err)
+		os.Args = os.Args[:len(os.Args)-1]
+	}()
+	os.Args = append(os.Args, "--file=")
+	main()
 }
 
 func TestNoArgs(t *testing.T) {
+	t.Cleanup(removeSimlink)
 	fmt.Println("testing: TestNoArgs")
 	defer func() {
 		err := recover()
@@ -99,10 +176,12 @@ func TestNoArgs(t *testing.T) {
 }
 
 func TestNoFile(t *testing.T) {
+	t.Cleanup(removeSimlink)
 	fmt.Println("testing: TestNoFile")
 	defer func() {
 		err := recover()
 		require.NotNil(t, err)
+		os.Args = os.Args[:len(os.Args)-1]
 	}()
 	os.Args = append(os.Args, "--file=./random.json")
 	main()
